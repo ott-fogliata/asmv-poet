@@ -1,4 +1,4 @@
-# asimovAI/Poet
+# Poet
 < description >
 
 ## Getting Started
