@@ -20,3 +20,5 @@ The GNU GPLv3 lets people do almost anything they want with your project, except
 * [**Ottavio Fogliata**](https://github.com/ott-fogliata)
 
 See also the list of [contributors](https://github.com/asimovAI/poet/contributors) who participated in this project.
+
+.
