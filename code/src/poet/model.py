@@ -10,21 +10,22 @@ class Model(object):
         size = config.hidden_size
         vocab_size = config.vocab_size
 
-        self._input_data = tf.placeholder(tf.int32, [batch_size, num_steps])
-        self._targets = tf.placeholder(tf.int32, [batch_size, num_steps])
+        self._input_data = tf.placeholder(tf.int32, shape=[batch_size, num_steps])
+        self._targets = tf.placeholder(tf.int32, shape=[batch_size, num_steps])
+
+        self.is_training = tf.placeholder(dtype=tf.bool, shape=[])
 
         # Slightly better results can be obtained with forget gate biases
         # initialized to 1 but the hyperparameters of the model would need to be
         # different than reported in the paper.
-        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0)
+        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
         if is_training and config.keep_prob < 1:
             lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
                 lstm_cell, output_keep_prob=config.keep_prob)
-        cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * config.num_layers)
 
-        # self._initial_state = cell.zero_state(batch_size, tf.float32)
-        self._initial_state = tf.get_default_session().run(cell.zero_state(batch_size, tf.float32))
+        cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
 
+        self._initial_state = cell.zero_state(batch_size, tf.float32)
 
         with tf.device('/cpu:0'):
             embedding = tf.get_variable('embedding', [vocab_size, size])
@@ -34,11 +35,10 @@ class Model(object):
             inputs = tf.nn.dropout(inputs, config.keep_prob)
 
         inputs = [tf.squeeze(input_, [1])
-                  for input_ in tf.split(inputs, num_steps, 1)]
+                  for input_ in tf.split(axis=1, num_or_size_splits=num_steps, value=inputs)]
         outputs, state = tfrnn.static_rnn(cell, inputs, initial_state=self._initial_state)
-        # outputs, state = tfrnn.static_rnn(cell, inputs)
 
-        output = tf.reshape(tf.concat(outputs, 1), [-1, size])
+        output = tf.reshape(tf.concat(axis=1, values=outputs), [-1, size])
         softmax_w = tf.get_variable('softmax_w', [size, vocab_size])
         softmax_b = tf.get_variable('softmax_b', [vocab_size])
         self._logits = logits = tf.matmul(output, softmax_w) + softmax_b
