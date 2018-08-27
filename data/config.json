@@ -1,1 +1,0 @@
-{"init_scale": 0.1, "max_grad_norm": 5, "num_layers": 4, "num_steps": 30, "hidden_size": 400, "keep_prob": 0.5, "batch_size": 20, "vocab_size": 15000}

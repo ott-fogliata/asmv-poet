@@ -10,8 +10,8 @@ class Model(object):
         size = config.hidden_size
         vocab_size = config.vocab_size
 
-        self._input_data = tf.placeholder(tf.int32, shape=[batch_size, num_steps])
-        self._targets = tf.placeholder(tf.int32, shape=[batch_size, num_steps])
+        self._input_data = tf.placeholder(tf.int32, shape=[batch_size, num_steps], name='input_data')
+        self._targets = tf.placeholder(tf.int32, shape=[batch_size, num_steps], name="targets")
 
         self.is_training = tf.placeholder(dtype=tf.bool, shape=[])
 

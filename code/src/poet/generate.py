@@ -17,12 +17,10 @@ from collections import namedtuple
 from model import Model
 
 
-WORK_DIR = '/data/www/poet/data/'
-#WORK_DIR = 'data-eminescu'
+WORK_DIR = '/data/www/poet/data/poet/'
 
 TEMPERATURE = .7
-INI_TEXT = '''green people floating
-the morning has'''
+INI_TEXT = '''sono alla ricerca dell'infinito'''
 
 
 def weighted_pick(a):
@@ -75,7 +73,7 @@ def main(_):
         ckpt = tf.train.get_checkpoint_state(WORK_DIR)
         saver.restore(session, ckpt.model_checkpoint_path)
 
-        state = m.initial_state.eval()
+        state = [(x[0].eval(), x[1].eval()) for x in m.initial_state]
 
         data = reader.TextProcessor(INI_TEXT).set_vocab(word2id).get_vector()
         sys.stdout.write(INI_TEXT)
@@ -97,9 +95,9 @@ def main(_):
             probs = session.run(tf.nn.softmax(logits)).flatten()
             w_id = weighted_pick(probs)
 
-            print("\r\n\r\n")
-            print(len(id2word))
-            print(w_id)
+            # print("\r\n\r\n")
+            # print(len(id2word))
+            # print(w_id)
             p.print_word(id2word[w_id])
 
         sys.stdout.write('\n\n')

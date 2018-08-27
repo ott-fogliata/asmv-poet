@@ -11,9 +11,9 @@ class TextProcessor(object):
         return TextProcessor(text)
 
     def __init__(self, text):
-        self.words_all = self._text2words(text)
-        self.words = self.words_all[int(len(self.words_all) * .15): int(len(self.words_all) * .85)]
-        self.words_test = self.words_all[int(0): int(len(self.words_all) * .15)]
+        self.words = self._text2words(text)
+        # self.words = self.words_all[int(len(self.words_all) * .15): int(len(self.words_all) * .85)]
+        # self.words_test = self.words_all[int(0): int(len(self.words_all) * .15)]
 
         self.id2word = None
         self.word2id = None
@@ -34,12 +34,12 @@ class TextProcessor(object):
         self.id2word[-1] = '<unk>'
         self.word2id = dict(zip(self.id2word, range(len(self.id2word))))
 
-    def create_vocab_test(self, size):
-        counter = collections.Counter(self.words_test)
-        count_pairs = counter.most_common(size-1)
-        self.id2word_test = list(dict(count_pairs).keys())
-        self.id2word_test[-1] = '<unk>'
-        self.word2id_test = dict(zip(self.id2word_test, range(len(self.id2word_test))))
+    # def create_vocab_test(self, size):
+    #     counter = collections.Counter(self.words_test)
+    #     count_pairs = counter.most_common(size-1)
+    #     self.id2word_test = list(dict(count_pairs).keys())
+    #     self.id2word_test[-1] = '<unk>'
+    #     self.word2id_test = dict(zip(self.id2word_test, range(len(self.id2word_test))))
 
     def get_vector(self):
 
@@ -47,11 +47,11 @@ class TextProcessor(object):
         self.vector = [self.word2id[word] if word in self.word2id else unk for word in self.words]
         return self.vector
 
-    def get_vector_test(self):
-
-        unk = self.word2id_test['<unk>']
-        self.vector_test = [self.word2id_test[word] if word in self.word2id_test else unk for word in self.words_test]
-        return self.vector_test
+    # def get_vector_test(self):
+    #
+    #     unk = self.word2id_test['<unk>']
+    #     self.vector_test = [self.word2id_test[word] if word in self.word2id_test else unk for word in self.words_test]
+    #     return self.vector_test
 
     def save_converted(self, filename):
         with open(filename, 'w', encoding='utf8') as fh:
