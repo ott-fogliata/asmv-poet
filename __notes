@@ -1,0 +1,1 @@
+bazel build --config=opt --config=mkl --config=monolithic --action_env=/data/www/asimov/venv//tensorflow/tools/pip_package:build_pip_package

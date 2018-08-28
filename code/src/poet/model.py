@@ -10,6 +10,8 @@ class Model(object):
         size = config.hidden_size
         vocab_size = config.vocab_size
 
+        self.optimizer = None
+
         self._input_data = tf.placeholder(tf.int32, shape=[batch_size, num_steps], name='input_data')
         self._targets = tf.placeholder(tf.int32, shape=[batch_size, num_steps], name="targets")
 
@@ -27,7 +29,7 @@ class Model(object):
 
         self._initial_state = cell.zero_state(batch_size, tf.float32)
 
-        with tf.device('/cpu:0'):
+        with tf.device('/gpu:0'):
             embedding = tf.get_variable('embedding', [vocab_size, size])
             inputs = tf.nn.embedding_lookup(embedding, self._input_data)
 
@@ -56,11 +58,19 @@ class Model(object):
         tvars = tf.trainable_variables()
         grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars),
                                           config.max_grad_norm)
-        optimizer = tf.train.GradientDescentOptimizer(self.lr)
-        self._train_op = optimizer.apply_gradients(zip(grads, tvars))
+
+        # Gradient Descent Optimizer is not compatible with Google TPU (Tensor Processing Unit)
+        # optimizer = tf.train.GradientDescentOptimizer(self.lr)
+        # self._train_op = optimizer.apply_gradients(zip(grads, tvars))
+
+        self.optimizer = tf.train.AdamOptimizer(self.lr)
+        self._train_op = self.optimizer.apply_gradients(zip(grads, tvars))
 
     def assign_lr(self, session, lr_value):
         session.run(tf.assign(self.lr, lr_value))
+
+    def get_lr_optimized(self, session):
+        return session.run(self.optimizer._lr)
 
     @property
     def input_data(self):

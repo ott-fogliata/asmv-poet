@@ -63,40 +63,28 @@ import glob
     vocab_size = 10000
 '''
 
-WORK_DIR = '/data/www/poet/data/poet/'
+WORK_DIR = '/data/www/asimov/data/poet/'
 
 nn_config = {
-    'init_scale': 0.1,
-    'max_grad_norm': 5,
-    # 'num_layers': 2,
-    'num_layers': 3,
-    'num_steps': 30,
-    'hidden_size': 400,
-    # 'keep_prob': .6,
-    'keep_prob': .5,
-    'batch_size': 20,
-    # 'batch_size': 64,
-    'vocab_size': 20000
+    'init_scale': 0.04,
+    'max_grad_norm': 10,
+    'num_layers': 2,
+    'num_steps': 35,
+    'hidden_size': 720,
+    'keep_prob': .35,
+    'batch_size': 32,
+    'vocab_size': 10000
+
 }
 
-test_config = {
-    'init_scale': 0.1,
-    'max_grad_norm': 5,
-    # 'num_layers': 2,
-    'num_layers': 3,
-    'num_steps': 1,
-    'hidden_size': 400,
-    # 'keep_prob': .6,
-    'keep_prob': .5,
-    'batch_size': 1,
-    'vocab_size': 15000
-}
-
+# With AdamOptimizer i need to use a way smaller learning rate such as 0.003
+# https://github.com/OpenNMT/OpenNMT-py/issues/676
 train_config = {
-    'max_max_epoch': 210,
-    'max_epoch': 190,
-    'learning_rate': 1.0,
-    'lr_decay': 0.6
+    'max_max_epoch': 100,
+    'max_epoch': 40,
+    # 'learning_rate': 0.003,
+    'learning_rate': 0.002,
+    'lr_decay': 1
 }
 
 summary_writer = tf.summary.FileWriter(WORK_DIR)
@@ -106,8 +94,8 @@ def get_data(data_path, dataset):
   raw_data = reader.text8_raw_data(data_path)
   return reader, raw_data
 
-def run_epoch(session, m, data, eval_op, num_layers, is_training=False):
 
+def run_epoch(session, m, data, eval_op, num_layers, is_training=False):
 
     epoch_size = ((len(data) // m.batch_size) - 1) // m.num_steps
     start_time = time.time()
@@ -168,8 +156,11 @@ def main():
     np.save(os.path.join(WORK_DIR, 'vocab.npy'), np.array(list(proc.id2word)))
     proc.save_converted(os.path.join(WORK_DIR, 'input.conv.txt'))
 
+    # gpu_options = tf.GPUOptions(allow_growth=True)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
+    tfSession = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
-    with tf.Graph().as_default(), tf.Session() as session:
+    with tf.Graph().as_default(), tfSession as session:
         initializer = tf.random_uniform_initializer(-model_config.init_scale,
                                                     model_config.init_scale)
 
@@ -195,8 +186,8 @@ def main():
             # lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
             # m.assign_lr(session, config.learning_rate * lr_decay)
 
-            lr_decay = config.lr_decay ** max(i - config.max_epoch + 1, 0.0)
-            lr = config.learning_rate / lr_decay
+            lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
+            lr = config.learning_rate * lr_decay
             m.assign_lr(session, lr)
 
             print("\r\nEpoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
@@ -223,9 +214,15 @@ def main():
 
             summary = tf.Summary()
 
-            value = summary.value.add()
-            value.simple_value = train_perplexity
-            value.tag = "NLP Perplexity"
+            value_perplexity = summary.value.add()
+            value_perplexity.simple_value = train_perplexity
+            value_perplexity.tag = "NLP Perplexity"
+            value_lr = summary.value.add()
+            value_lr.simple_value = lr
+            value_lr.tag = "Learning Rate"
+            value_lr_opt = summary.value.add()
+            value_lr_opt.simple_value = m.get_lr_optimized(session)
+            value_lr_opt.tag = "Learning Rate Optimized"
             summary_writer.add_summary(summary, i + 1)
             summary_writer.flush()
 

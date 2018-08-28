@@ -17,7 +17,7 @@ from collections import namedtuple
 from model import Model
 
 
-WORK_DIR = '/data/www/poet/data/poet/'
+WORK_DIR = '/data/www/asimov/data/poet/'
 
 TEMPERATURE = .7
 INI_TEXT = '''sono alla ricerca dell'infinito'''
