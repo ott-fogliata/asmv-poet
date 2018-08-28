@@ -81,10 +81,10 @@ nn_config = {
 # https://github.com/OpenNMT/OpenNMT-py/issues/676
 train_config = {
     'max_max_epoch': 140,
-    'max_epoch': 90,
+    'max_epoch': 110,
     # 'learning_rate': 0.003,
-    'learning_rate': 0.003,
-    'lr_decay': .95
+    'learning_rate': 0.0036,
+    'lr_decay': .97
 }
 
 summary_writer = tf.summary.FileWriter(WORK_DIR)
