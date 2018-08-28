@@ -80,11 +80,11 @@ nn_config = {
 # With AdamOptimizer i need to use a way smaller learning rate such as 0.003
 # https://github.com/OpenNMT/OpenNMT-py/issues/676
 train_config = {
-    'max_max_epoch': 100,
-    'max_epoch': 40,
+    'max_max_epoch': 140,
+    'max_epoch': 90,
     # 'learning_rate': 0.003,
-    'learning_rate': 0.002,
-    'lr_decay': 1
+    'learning_rate': 0.003,
+    'lr_decay': .95
 }
 
 summary_writer = tf.summary.FileWriter(WORK_DIR)
