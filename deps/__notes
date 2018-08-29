@@ -1,0 +1,2 @@
+Use this folder to store tensorflow package (to build it) and other dependencies. 
+All of this (except __notes) will be ignored.
