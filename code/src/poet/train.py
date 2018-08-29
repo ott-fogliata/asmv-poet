@@ -2,22 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import time
-
 import numpy as np
 import tensorflow as tf
 import os
-
 import reader
 import model
-import utils
-from collections import namedtuple
 import json
 import glob
-
+from collections import namedtuple
 
 # TODO: see this https://github.com/kentonl/ran/blob/bcee2c80633168f65b69187486ece32ba19ec9db/text8/char_train.py
-# TODO: use GPU!
-# TODO: execute test verify to track improvements in the epochs
 
 '''
     Small config:
@@ -77,8 +71,10 @@ nn_config = {
 
 }
 
-# With AdamOptimizer i need to use a way smaller learning rate such as 0.003
-# https://github.com/OpenNMT/OpenNMT-py/issues/676
+'''
+With AdamOptimizer i need to use a way smaller learning rate such as 0.003
+https://github.com/OpenNMT/OpenNMT-py/issues/676
+'''
 train_config = {
     'max_max_epoch': 140,
     'max_epoch': 110,
@@ -87,13 +83,12 @@ train_config = {
     'lr_decay': .97
 }
 
-summary_writer = tf.summary.FileWriter(WORK_DIR)
-
+# To summarize data in Tensorboard, please uncomment it:
+# summary_writer = tf.summary.FileWriter(WORK_DIR)
 
 def get_data(data_path, dataset):
-  raw_data = reader.text8_raw_data(data_path)
-  return reader, raw_data
-
+    raw_data = reader.text8_raw_data(data_path)
+    return reader, raw_data
 
 def run_epoch(session, m, data, eval_op, num_layers, is_training=False):
 
@@ -131,30 +126,25 @@ def main():
     ret = input('Are you sure you want to clean %s [yes|no] ' % (WORK_DIR,))
     if ret == 'yes':
         for f in glob.glob(os.path.join(WORK_DIR, '*')):
-            if not f.endswith('.txt'):
+            if not f.endswith('.txt') and not f.endswith('.md'):
                 os.remove(f)
                 print(f + ' deleted')
 
     config = namedtuple('TrainConfig', train_config.keys())(*train_config.values())
 
-
     model_config = namedtuple('ModelConfig', nn_config.keys())(*nn_config.values())
-    # model_val_config = namedtuple('ModelConfig', nn_config.keys())(*nn_config.values())
-    # model_test_config = namedtuple('ModelConfig', test_config.keys())(*test_config.values())
 
     with open(os.path.join(WORK_DIR, 'config.json'), 'w', encoding="utf8") as fh:
         json.dump(nn_config, fh)
 
-    proc = reader.TextProcessor.from_file(os.path.join(WORK_DIR, 'input.txt'))
+    proc = reader.TextProcessor.from_file(os.path.join(WORK_DIR, 'input.*.txt'))
 
     proc.create_vocab(model_config.vocab_size)
-    # proc.create_vocab_test(model_config.vocab_size)
 
     train_data = proc.get_vector()
-    # test_data = proc.get_vector_test()
 
     np.save(os.path.join(WORK_DIR, 'vocab.npy'), np.array(list(proc.id2word)))
-    proc.save_converted(os.path.join(WORK_DIR, 'input.conv.txt'))
+    proc.save_converted(os.path.join(WORK_DIR, 'input-converted.txt'))
 
     # gpu_options = tf.GPUOptions(allow_growth=True)
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.85)
@@ -167,24 +157,14 @@ def main():
         with tf.variable_scope('model', reuse=None, initializer=initializer):
             m = model.Model(is_training=True, config=model_config)
 
-        # with tf.variable_scope("model", reuse=True, initializer=initializer):
-        #     mvalid = model.Model(is_training=False, config=model_val_config)
-        #     mtest = model.Model(is_training=False, config=model_test_config)
-
         tf.initialize_all_variables().run()
         saver = tf.train.Saver(tf.all_variables())
 
         for i in range(config.max_max_epoch):
-
-            # TODO: i need a better algorithm to auto-decay learning rate value
-            # -> https://towardsdatascience.com/understanding-learning-rates-and-how-it-improves-performance-in-deep-learning-d0d4059c1c10
-
             """
             Learning rate is a hyper-parameter that controls how much 
             we are adjusting the weights of our network with respect the loss gradient.
             """
-            # lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
-            # m.assign_lr(session, config.learning_rate * lr_decay)
 
             lr_decay = config.lr_decay ** max(i - config.max_epoch, 0.0)
             lr = config.learning_rate * lr_decay
@@ -192,16 +172,6 @@ def main():
 
             print("\r\nEpoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
             train_perplexity = run_epoch(session, m, train_data, m.train_op, model_config.num_layers, is_training=True)
-
-            # print("Testing on non-batched Valid ...")
-            # valid_perplexity = run_epoch(session, mvalid, train_data, tf.no_op(),
-            # model_config.num_layers, is_training=False)
-            # print("Full Valid Perplexity: %.3f, Bits: %.3f" % (valid_perplexity, np.log2(valid_perplexity)))
-            #
-            # print("Testing on non-batched Test ...")value.tag
-            # test_perplexity = run_epoch(session, mtest, test_data, tf.no_op(),
-            # model_config.num_layers, is_training=False)
-            # print("Full Test Perplexity: %.3f, Bits: %.3f" % (test_perplexity, np.log2(test_perplexity)))
 
             """
             [ Perplexity ]
@@ -212,25 +182,26 @@ def main():
             """
             print("=> [%d] Train Perplexity: %.3f" % (i + 1, train_perplexity))
 
-            summary = tf.Summary()
-
-            value_perplexity = summary.value.add()
-            value_perplexity.simple_value = train_perplexity
-            value_perplexity.tag = "NLP Perplexity"
-            value_lr = summary.value.add()
-            value_lr.simple_value = lr
-            value_lr.tag = "Learning Rate"
-            value_lr_opt = summary.value.add()
-            value_lr_opt.simple_value = m.get_lr_optimized(session)
-            value_lr_opt.tag = "Learning Rate Optimized"
-            summary_writer.add_summary(summary, i + 1)
-            summary_writer.flush()
+            # Uncomment this if you need to use tensorboard:
+            # summary = tf.Summary()
+            #
+            # value_perplexity = summary.value.add()
+            # value_perplexity.simple_value = train_perplexity
+            # value_perplexity.tag = "NLP Perplexity"
+            # value_lr = summary.value.add()
+            # value_lr.simple_value = lr
+            # value_lr.tag = "Learning Rate"
+            # value_lr_opt = summary.value.add()
+            # value_lr_opt.simple_value = m.get_lr_optimized(session)
+            # value_lr_opt.tag = "Learning Rate Optimized"
+            # summary_writer.add_summary(summary, i + 1)
+            # summary_writer.flush()
 
             ckp_path = os.path.join(WORK_DIR, 'model.ckpt')
             saver.save(session, ckp_path, global_step=i)
 
-            summary_writer.add_graph(session.graph, global_step=1)
-            summary_writer.flush()
+            # summary_writer.add_graph(session.graph, global_step=1)
+            # summary_writer.flush()
 
 
 if __name__ == "__main__":

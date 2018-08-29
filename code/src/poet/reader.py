@@ -1,13 +1,17 @@
 import collections
 import numpy as np
 import re
-
+import glob
 
 class TextProcessor(object):
     @staticmethod
     def from_file(input_file):
-        with open(input_file, 'r', encoding='utf8') as fh:
-            text = fh.read()
+        text = ''
+        # ie.g: input_file: input.*.txt
+        for filename in glob.glob(input_file):
+            with open(filename, 'r', encoding='utf8') as fh:
+                text += fh.read()
+
         return TextProcessor(text)
 
     def __init__(self, text):

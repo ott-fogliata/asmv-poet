@@ -109,5 +109,7 @@ asmv.env/*
 #IDEs
 .idea
 
-data/
+data/*
+!data/input.*.txt
+!data/*.md
 deps

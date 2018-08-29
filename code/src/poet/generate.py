@@ -16,11 +16,20 @@ from collections import namedtuple
 
 from model import Model
 
-
+'''
+Working dir: where dataset has been stored.
+'''
 WORK_DIR = '/data/www/asimov/data/poet/'
 
-TEMPERATURE = .7
-INI_TEXT = '''sono alla ricerca dell'infinito'''
+''' 
+Change the TEMPERATURE parameter to vary the degree of randomness. 
+'''
+TEMPERATURE = 1.1
+
+'''
+Seed text.
+'''
+INI_TEXT = '''dov'è l'amor?'''
 
 
 def weighted_pick(a):
